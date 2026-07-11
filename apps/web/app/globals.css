@@ -1,4 +1,4 @@
-@import '@workspace/ui/src/tokens.css';
+@import '@workspace/ui/tokens.css';
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

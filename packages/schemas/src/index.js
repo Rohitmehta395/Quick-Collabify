@@ -7,4 +7,6 @@
  * We will export them here as named exports when they are implemented in future phases.
  */
 
-export {};
+export { oauthCallbackSchema } from './auth/oauth-callback.js';
+export { linkingConfirmationSchema } from './auth/linking-confirmation.js';
+export { userSchema } from './auth/user.js';

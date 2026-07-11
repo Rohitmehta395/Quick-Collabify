@@ -10,7 +10,7 @@
 ## 1. Goals
 
 - Produce a professional engineering foundation that every subsequent phase builds on without needing to revisit tooling, structure, or process decisions.
-- Make the "decision surface" for foundational choices (monorepo vs. multi-repo, package manager, branching model, logging library, etc.) explicit and closed *now*, so later phases spend their effort on product work, not infrastructure debate.
+- Make the "decision surface" for foundational choices (monorepo vs. multi-repo, package manager, branching model, logging library, etc.) explicit and closed _now_, so later phases spend their effort on product work, not infrastructure debate.
 - Ensure a new engineer can go from `git clone` to a fully running local stack, and from a first commit to a merged, CI-verified PR, using only what this phase establishes.
 - Establish patterns (config validation, structured logging, error handling, commit conventions) that are correct on day one, since retrofitting them across a growing codebase later is materially more expensive than deciding them once here.
 
@@ -46,22 +46,22 @@ Explicitly **not** part of this phase, to prevent scope creep into Phase 1+:
 
 ### 4.1 Monorepo vs. Multi-Repo Decision
 
-| Approach | Pros | Cons |
-|---|---|---|
-| **Multi-repo** (separate repos for frontend, API, real-time service, worker) | Clean deploy boundaries; independent versioning; smaller individual checkouts | Cross-cutting changes (a shared Zod schema used by both frontend and backend, per architecture §18/§19) require coordinated PRs across repos and versioned package publishing just to share code internally; a small team pays this coordination tax on nearly every phase, since most phases touch both an API contract and its consuming UI |
-| **Monorepo** (single repo, multiple packages/apps) | Shared Zod schemas, config, and types live in one place and are consumed directly (no publish/version step for internal code); one PR can span a schema change and its consumers atomically; single CI pipeline, single source of truth for tooling versions | Requires workspace tooling (below) to keep packages properly isolated; a misconfigured build can accidentally couple packages that shouldn't be coupled |
-| **Selected: Monorepo** | — | — |
+| Approach                                                                     | Pros                                                                                                                                                                                                                                                         | Cons                                                                                                                                                                                                                                                                                                                                          |
+| ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Multi-repo** (separate repos for frontend, API, real-time service, worker) | Clean deploy boundaries; independent versioning; smaller individual checkouts                                                                                                                                                                                | Cross-cutting changes (a shared Zod schema used by both frontend and backend, per architecture §18/§19) require coordinated PRs across repos and versioned package publishing just to share code internally; a small team pays this coordination tax on nearly every phase, since most phases touch both an API contract and its consuming UI |
+| **Monorepo** (single repo, multiple packages/apps)                           | Shared Zod schemas, config, and types live in one place and are consumed directly (no publish/version step for internal code); one PR can span a schema change and its consumers atomically; single CI pipeline, single source of truth for tooling versions | Requires workspace tooling (below) to keep packages properly isolated; a misconfigured build can accidentally couple packages that shouldn't be coupled                                                                                                                                                                                       |
+| **Selected: Monorepo**                                                       | —                                                                                                                                                                                                                                                            | —                                                                                                                                                                                                                                                                                                                                             |
 
-**Reasoning:** the architecture explicitly relies on sharing validation logic (Zod schemas) between the Next.js frontend and the Express backend "written once conceptually" (architecture §3.2, §18). A multi-repo setup would force either duplicated schema definitions (a correctness risk — the two copies *will* drift) or a published internal package with a release cycle, which is disproportionate overhead for a small team executing a sequential, one-phase-at-a-time roadmap. The monorepo is the only option that makes the shared-schema principle actually convenient rather than aspirational.
+**Reasoning:** the architecture explicitly relies on sharing validation logic (Zod schemas) between the Next.js frontend and the Express backend "written once conceptually" (architecture §3.2, §18). A multi-repo setup would force either duplicated schema definitions (a correctness risk — the two copies _will_ drift) or a published internal package with a release cycle, which is disproportionate overhead for a small team executing a sequential, one-phase-at-a-time roadmap. The monorepo is the only option that makes the shared-schema principle actually convenient rather than aspirational.
 
 ### 4.2 Workspace Tooling
 
-| Approach | Pros | Cons |
-|---|---|---|
-| **npm workspaces** | Zero extra tooling, ships with npm | Weaker dependency isolation (npm's flat `node_modules` historically allows "phantom dependencies" — a package importing something it never declared, that happens to be hoisted from a sibling package) |
-| **Yarn workspaces (Classic or Berry)** | Mature, widely used | Berry's Plug'n'Play mode has real compatibility friction with some tooling; Classic has the same phantom-dependency risk as npm |
-| **pnpm workspaces** | Strict, symlinked `node_modules` structure that makes phantom dependencies fail loudly (a package cannot import something it didn't explicitly declare) — this is a meaningful correctness benefit for a project that is deliberately JavaScript-only (no TypeScript compiler to catch a wrong import at build time, per the stack requirement); fast, disk-efficient (content-addressable store shared across projects) | Slightly less universal familiarity than npm; a few older or poorly-behaved packages assume npm/yarn's flatter structure and occasionally need a workaround |
-| **Selected: pnpm workspaces** | — | — |
+| Approach                               | Pros                                                                                                                                                                                                                                                                                                                                                                                                                     | Cons                                                                                                                                                                                                    |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **npm workspaces**                     | Zero extra tooling, ships with npm                                                                                                                                                                                                                                                                                                                                                                                       | Weaker dependency isolation (npm's flat `node_modules` historically allows "phantom dependencies" — a package importing something it never declared, that happens to be hoisted from a sibling package) |
+| **Yarn workspaces (Classic or Berry)** | Mature, widely used                                                                                                                                                                                                                                                                                                                                                                                                      | Berry's Plug'n'Play mode has real compatibility friction with some tooling; Classic has the same phantom-dependency risk as npm                                                                         |
+| **pnpm workspaces**                    | Strict, symlinked `node_modules` structure that makes phantom dependencies fail loudly (a package cannot import something it didn't explicitly declare) — this is a meaningful correctness benefit for a project that is deliberately JavaScript-only (no TypeScript compiler to catch a wrong import at build time, per the stack requirement); fast, disk-efficient (content-addressable store shared across projects) | Slightly less universal familiarity than npm; a few older or poorly-behaved packages assume npm/yarn's flatter structure and occasionally need a workaround                                             |
+| **Selected: pnpm workspaces**          | —                                                                                                                                                                                                                                                                                                                                                                                                                        | —                                                                                                                                                                                                       |
 
 **Reasoning:** given the project is JavaScript, not TypeScript, one of this codebase's biggest correctness risks is exactly the class of bug pnpm's strictness prevents — silently importing a module that isn't actually a declared dependency of the package doing the importing. This is a case where the package-manager choice directly compensates for a stack constraint already fixed elsewhere.
 
@@ -97,11 +97,11 @@ Each `apps/*` and `packages/*` directory gets its own `package.json` (pnpm works
 
 ### 5.1 Single Multi-Stage Dockerfile vs. Separate Dev/Prod Dockerfiles
 
-| Approach | Pros | Cons |
-|---|---|---|
-| **Separate Dockerfiles** (`Dockerfile.dev`, `Dockerfile.prod`) | Each is simple and single-purpose | Duplicated base-image/dependency-install logic between the two; the two files drift over time (a fix applied to one is forgotten in the other) — a known, common source of "works locally, breaks in prod" bugs |
-| **Single multi-stage Dockerfile with named targets** (`base`, `dev`, `build`, `prod`) | One file, one source of truth for base image and dependency installation; `docker build --target dev` vs `--target prod` selects the right output from the same definition; standard, well-understood Docker pattern | Slightly more upfront complexity to write correctly |
-| **Selected: Single multi-stage Dockerfile per app, with named targets** | — | — |
+| Approach                                                                              | Pros                                                                                                                                                                                                                 | Cons                                                                                                                                                                                                            |
+| ------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Separate Dockerfiles** (`Dockerfile.dev`, `Dockerfile.prod`)                        | Each is simple and single-purpose                                                                                                                                                                                    | Duplicated base-image/dependency-install logic between the two; the two files drift over time (a fix applied to one is forgotten in the other) — a known, common source of "works locally, breaks in prod" bugs |
+| **Single multi-stage Dockerfile with named targets** (`base`, `dev`, `build`, `prod`) | One file, one source of truth for base image and dependency installation; `docker build --target dev` vs `--target prod` selects the right output from the same definition; standard, well-understood Docker pattern | Slightly more upfront complexity to write correctly                                                                                                                                                             |
+| **Selected: Single multi-stage Dockerfile per app, with named targets**               | —                                                                                                                                                                                                                    | —                                                                                                                                                                                                               |
 
 Each of `apps/web`, `apps/api`, `apps/realtime`, `apps/worker` gets its own multi-stage `Dockerfile` in `infra/docker/`, targeting: `base` (shared OS + pnpm setup), `dev` (installs dev dependencies, runs with hot-reload), `prod` (production install only, no dev dependencies, smallest practical image).
 
@@ -113,14 +113,14 @@ Each of `apps/web`, `apps/api`, `apps/realtime`, `apps/worker` gets its own mult
 
 ### 6.1 Services
 
-| Service | Purpose | Notes |
-|---|---|---|
-| `postgres` | Primary datastore | Named volume for data persistence across restarts; healthcheck (`pg_isready`) gating dependent services |
-| `redis` | Sessions, cache, pub/sub, job queue (architecture §8) | Healthcheck (`redis-cli ping`) gating dependent services |
-| `api` | Control-plane Express process | Depends on `postgres` + `redis` healthchecks passing before starting, not just "container started" |
-| `realtime` | Real-time-plane Socket.IO process | Scaffolded only — starts, passes its health check, has no domain logic yet |
-| `worker` | BullMQ worker process | Scaffolded only — starts, connects to Redis, has no real jobs yet (Phase 2 adds the first one) |
-| `web` | Next.js frontend | Depends on `api` being healthy |
+| Service    | Purpose                                               | Notes                                                                                                   |
+| ---------- | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `postgres` | Primary datastore                                     | Named volume for data persistence across restarts; healthcheck (`pg_isready`) gating dependent services |
+| `redis`    | Sessions, cache, pub/sub, job queue (architecture §8) | Healthcheck (`redis-cli ping`) gating dependent services                                                |
+| `api`      | Control-plane Express process                         | Depends on `postgres` + `redis` healthchecks passing before starting, not just "container started"      |
+| `realtime` | Real-time-plane Socket.IO process                     | Scaffolded only — starts, passes its health check, has no domain logic yet                              |
+| `worker`   | BullMQ worker process                                 | Scaffolded only — starts, connects to Redis, has no real jobs yet (Phase 2 adds the first one)          |
+| `web`      | Next.js frontend                                      | Depends on `api` being healthy                                                                          |
 
 ### 6.2 Design Decisions
 
@@ -162,11 +162,11 @@ Without TypeScript, there is no compiler to catch "this code assumes `PORT` is a
 
 ### 9.1 Library Choice
 
-| Approach | Pros | Cons |
-|---|---|---|
-| **Winston** | Very configurable, widely known | Structured JSON output requires more manual configuration to get right and stay fast; historically slower than newer alternatives under high throughput |
-| **Pino** | Structured JSON by default; among the fastest Node logging libraries (low overhead matters specifically on the real-time process's hot broadcast path, per architecture §11.5); simple, opinionated API that's hard to misuse into unstructured output | Less flexible formatting out of the box (rarely a real constraint here, since structured JSON is exactly what's wanted per architecture §22) |
-| **Selected: Pino** | — | — |
+| Approach           | Pros                                                                                                                                                                                                                                                   | Cons                                                                                                                                                    |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Winston**        | Very configurable, widely known                                                                                                                                                                                                                        | Structured JSON output requires more manual configuration to get right and stay fast; historically slower than newer alternatives under high throughput |
+| **Pino**           | Structured JSON by default; among the fastest Node logging libraries (low overhead matters specifically on the real-time process's hot broadcast path, per architecture §11.5); simple, opinionated API that's hard to misuse into unstructured output | Less flexible formatting out of the box (rarely a real constraint here, since structured JSON is exactly what's wanted per architecture §22)            |
+| **Selected: Pino** | —                                                                                                                                                                                                                                                      | —                                                                                                                                                       |
 
 ### 9.2 Design
 
@@ -182,13 +182,13 @@ Without TypeScript, there is no compiler to catch "this code assumes `PORT` is a
 A shared `packages/config`-adjacent error module (or its own small `packages/errors` package — a decision left open only in the sense of "own package vs. folder inside `packages/config`," not in principle) defines:
 
 - **`OperationalError`** (base class) — an expected, handleable failure (validation failure, not-found, unauthorized). Carries an HTTP-status-equivalent code and a machine-readable error code, matching the consistent error envelope architecture §18 already commits to.
-- **`ProgrammerError`** (or simply: anything that is *not* an `OperationalError`) — a bug. These are never shown to the user with their raw message/stack; they're logged with full detail (via the Pino setup above) and surfaced to the client as a generic "something went wrong" response, since exposing internals of an unexpected error is both a security risk and rarely actionable for the caller.
+- **`ProgrammerError`** (or simply: anything that is _not_ an `OperationalError`) — a bug. These are never shown to the user with their raw message/stack; they're logged with full detail (via the Pino setup above) and surfaced to the client as a generic "something went wrong" response, since exposing internals of an unexpected error is both a security risk and rarely actionable for the caller.
 
 ### 10.2 Handling Per Process Type
 
 - **API (Express):** a single centralized error-handling middleware, last in the middleware chain, maps `OperationalError` subclasses to the correct status code and the consistent envelope (architecture §18); anything else is logged as a `ProgrammerError` and returns a generic 500.
 - **Real-time (Socket.IO):** equivalent centralized handling at the socket-event level — an unhandled error in an event handler must never crash the whole process or silently swallow the failure; it's caught, logged, and the specific socket is informed/disconnected as appropriate, without affecting other connections.
-- **Worker (BullMQ):** job failures are caught by BullMQ's own retry mechanism (architecture §10), but the *logging* of a job failure follows the same `OperationalError`/`ProgrammerError` distinction, so job-failure logs are consistently structured with everything else.
+- **Worker (BullMQ):** job failures are caught by BullMQ's own retry mechanism (architecture §10), but the _logging_ of a job failure follows the same `OperationalError`/`ProgrammerError` distinction, so job-failure logs are consistently structured with everything else.
 - **Process-level safety net:** every process registers `uncaughtException`/`unhandledRejection` handlers that log the error with full context and then **exit the process** (relying on the container orchestrator to restart it) rather than continuing in a potentially corrupted state — "log and continue" on a truly unexpected error is explicitly rejected as a pattern, since it risks silent data corruption more than a clean, logged restart does.
 
 ## 11. Development Workflow
@@ -203,13 +203,13 @@ A shared `packages/config`-adjacent error module (or its own small `packages/err
 
 ## 12. Git Branching Strategy
 
-| Approach | Pros | Cons |
-|---|---|---|
-| **GitFlow** (long-lived `develop` + `main`, release branches, hotfix branches) | Clear separation of "in progress" vs. "released" | Designed for projects with distinct release trains and long-lived parallel work; this project is executing one sequential, single-team roadmap phase at a time — GitFlow's ceremony (merging to `develop`, then to `main` at release time) adds process overhead with no corresponding benefit here |
-| **Trunk-based development** (`main` always deployable, short-lived feature branches merged frequently) | Matches the roadmap's own "one phase at a time, always deployable at the end of each phase" principle directly; CI on every PR keeps `main` trustworthy; simple mental model | Requires discipline to keep branches short-lived and CI genuinely gating merges (not a real con given this team is already committed to phase discipline) |
-| **Selected: Trunk-based development** | — | — |
+| Approach                                                                                               | Pros                                                                                                                                                                         | Cons                                                                                                                                                                                                                                                                                                |
+| ------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **GitFlow** (long-lived `develop` + `main`, release branches, hotfix branches)                         | Clear separation of "in progress" vs. "released"                                                                                                                             | Designed for projects with distinct release trains and long-lived parallel work; this project is executing one sequential, single-team roadmap phase at a time — GitFlow's ceremony (merging to `develop`, then to `main` at release time) adds process overhead with no corresponding benefit here |
+| **Trunk-based development** (`main` always deployable, short-lived feature branches merged frequently) | Matches the roadmap's own "one phase at a time, always deployable at the end of each phase" principle directly; CI on every PR keeps `main` trustworthy; simple mental model | Requires discipline to keep branches short-lived and CI genuinely gating merges (not a real con given this team is already committed to phase discipline)                                                                                                                                           |
+| **Selected: Trunk-based development**                                                                  | —                                                                                                                                                                            | —                                                                                                                                                                                                                                                                                                   |
 
-**Reasoning:** the roadmap's own working agreement ("every phase should leave the application in a deployable state") *is* the trunk-based development principle, restated. Adopting GitFlow's release-branch ceremony on top of a roadmap that already defines its own deployable checkpoints (each phase's Definition of Done) would be redundant process.
+**Reasoning:** the roadmap's own working agreement ("every phase should leave the application in a deployable state") _is_ the trunk-based development principle, restated. Adopting GitFlow's release-branch ceremony on top of a roadmap that already defines its own deployable checkpoints (each phase's Definition of Done) would be redundant process.
 
 ## 13. Commit Conventions
 
@@ -284,16 +284,16 @@ No step in this process should require a Slack message to a teammate to figure o
 
 ## 22. Naming Conventions
 
-| Element | Convention | Example |
-|---|---|---|
-| Files | kebab-case | `permission-resolver.js` |
-| Variables, functions | camelCase | `resolvePermission()` |
-| React components | PascalCase | `WorkspaceSwitcher.jsx` |
-| Constants (module-level, truly constant) | SCREAMING_SNAKE_CASE | `MAX_UPLOAD_SIZE_BYTES` |
-| Environment variables | SCREAMING_SNAKE_CASE | `DATABASE_URL` |
-| Prisma models | PascalCase (Prisma convention), mapped to snake_case table/column names via `@map`/`@@map` | model `WorkspaceMember` → table `workspace_members` |
-| Redis keys | colon-delimited namespace, established now for every future phase to follow | `session:{sessionId}`, `presence:{documentId}:{userId}`, `permcache:{userId}:{documentId}` |
-| Git branches | `type/short-description` | `feat/phase-0-docker-compose` |
+| Element                                  | Convention                                                                                 | Example                                                                                    |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------ |
+| Files                                    | kebab-case                                                                                 | `permission-resolver.js`                                                                   |
+| Variables, functions                     | camelCase                                                                                  | `resolvePermission()`                                                                      |
+| React components                         | PascalCase                                                                                 | `WorkspaceSwitcher.jsx`                                                                    |
+| Constants (module-level, truly constant) | SCREAMING_SNAKE_CASE                                                                       | `MAX_UPLOAD_SIZE_BYTES`                                                                    |
+| Environment variables                    | SCREAMING_SNAKE_CASE                                                                       | `DATABASE_URL`                                                                             |
+| Prisma models                            | PascalCase (Prisma convention), mapped to snake_case table/column names via `@map`/`@@map` | model `WorkspaceMember` → table `workspace_members`                                        |
+| Redis keys                               | colon-delimited namespace, established now for every future phase to follow                | `session:{sessionId}`, `presence:{documentId}:{userId}`, `permcache:{userId}:{documentId}` |
+| Git branches                             | `type/short-description`                                                                   | `feat/phase-0-docker-compose`                                                              |
 
 Establishing the Redis key-naming pattern here, even though nothing uses Redis meaningfully until Phase 1 (sessions), is deliberate: every later phase that touches Redis (presence in Phase 12, permission cache in Phase 7, job queues in Phase 2) inherits one consistent namespacing convention instead of each phase inventing its own.
 
@@ -308,11 +308,11 @@ Establishing the Redis key-naming pattern here, even though nothing uses Redis m
 
 ### 24.1 Test Runner Choice
 
-| Approach | Pros | Cons |
-|---|---|---|
-| **Jest** | Extremely widely used, huge ecosystem | Slower in large workspaces; ESM support has historically required extra configuration friction, relevant given this is a modern, ESM-leaning JS stack |
-| **Vitest** | Fast (Vite-powered), native ESM support out of the box, Jest-compatible API (low switching cost for anyone with Jest experience), integrates cleanly with a pnpm-workspace monorepo | Younger ecosystem than Jest (not a meaningful risk at this project's scale) |
-| **Selected: Vitest** | — | — |
+| Approach             | Pros                                                                                                                                                                                | Cons                                                                                                                                                  |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Jest**             | Extremely widely used, huge ecosystem                                                                                                                                               | Slower in large workspaces; ESM support has historically required extra configuration friction, relevant given this is a modern, ESM-leaning JS stack |
+| **Vitest**           | Fast (Vite-powered), native ESM support out of the box, Jest-compatible API (low switching cost for anyone with Jest experience), integrates cleanly with a pnpm-workspace monorepo | Younger ecosystem than Jest (not a meaningful risk at this project's scale)                                                                           |
+| **Selected: Vitest** | —                                                                                                                                                                                   | —                                                                                                                                                     |
 
 ### 24.2 What Phase 0 Actually Tests
 
@@ -341,12 +341,12 @@ Phase 0 is complete when **all** of the following are true:
 
 ## 26. Risks
 
-| Risk | Mitigation |
-|---|---|
-| **Over-investing in foundation tooling before there's any product to justify it** — a real failure mode for "let's set this up properly" phases | This spec's scope (§2/§3) is deliberately bounded; anything not explicitly listed as in-scope is out of scope by default, and the acceptance criteria (§25) are the actual stopping point, not "keep polishing until it feels done" |
-| **pnpm-specific tooling friction** with a library that assumes npm/yarn's flatter `node_modules` | Address on a case-by-case basis if/when it occurs (pnpm's `shamefully-hoist` escape hatch exists for exactly this); not worth pre-solving for a problem that may never materialize |
-| **Docker Compose / production environment drift** — local dev "working" doesn't guarantee production parity, especially since production deployment targets (Vercel/Railway) aren't finalized in this phase | Explicitly deferred to a later phase's concern (production deployment configuration, not Phase 0's job) rather than trying to solve for an undetermined target now |
-| **The `apps/*`→`packages/*` boundary rule being annoying enough that people route around it** (e.g., duplicating a schema locally instead of fixing an import) | The rule is enforced by lint (§14), not convention, specifically to remove the temptation — a lint failure is a clear, immediate signal, whereas a convention is easy to quietly violate under time pressure |
+| Risk                                                                                                                                                                                                        | Mitigation                                                                                                                                                                                                                          |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Over-investing in foundation tooling before there's any product to justify it** — a real failure mode for "let's set this up properly" phases                                                             | This spec's scope (§2/§3) is deliberately bounded; anything not explicitly listed as in-scope is out of scope by default, and the acceptance criteria (§25) are the actual stopping point, not "keep polishing until it feels done" |
+| **pnpm-specific tooling friction** with a library that assumes npm/yarn's flatter `node_modules`                                                                                                            | Address on a case-by-case basis if/when it occurs (pnpm's `shamefully-hoist` escape hatch exists for exactly this); not worth pre-solving for a problem that may never materialize                                                  |
+| **Docker Compose / production environment drift** — local dev "working" doesn't guarantee production parity, especially since production deployment targets (Vercel/Railway) aren't finalized in this phase | Explicitly deferred to a later phase's concern (production deployment configuration, not Phase 0's job) rather than trying to solve for an undetermined target now                                                                  |
+| **The `apps/*`→`packages/*` boundary rule being annoying enough that people route around it** (e.g., duplicating a schema locally instead of fixing an import)                                              | The rule is enforced by lint (§14), not convention, specifically to remove the temptation — a lint failure is a clear, immediate signal, whereas a convention is easy to quietly violate under time pressure                        |
 
 ## 27. Common Mistakes
 
@@ -363,7 +363,7 @@ These are the choices in this document with real migration cost if reversed afte
 
 - **Monorepo structure** (§4.1) — reversing this later means untangling every shared-schema import across every app.
 - **pnpm as the package manager** (§4.2) — switching package managers mid-project means regenerating lockfiles and re-validating dependency resolution across every workspace package.
-- **Node 20 (LTS) as the runtime baseline** (§5.2) — a major Node version bump later is a deliberate, tested upgrade project, not a Phase 0 concern, but the *initial* baseline should not be casually changed once containers/CI are built around it.
+- **Node 20 (LTS) as the runtime baseline** (§5.2) — a major Node version bump later is a deliberate, tested upgrade project, not a Phase 0 concern, but the _initial_ baseline should not be casually changed once containers/CI are built around it.
 - **The environment-variable contract pattern** (§7–8: Zod-validated, centralized, no direct `process.env` access) — retrofitting this discipline onto a codebase that grew without it is far more expensive than establishing it now, before any application code exists.
 - **The Redis key-namespacing convention** (§22) — changing key formats after Phase 1's sessions and later phases' presence/cache/queue keys are in use requires a coordinated migration across every Redis consumer simultaneously.
 - **Conventional Commits** (§13) — not costly to reverse technically, but the value of commit history is cumulative; switching conventions partway through fragments the changelog-generation and history-search benefit this pattern exists to provide.
@@ -371,4 +371,4 @@ These are the choices in this document with real migration cost if reversed afte
 
 ---
 
-*This document requires team review and explicit sign-off before implementation begins. Once approved, Phase 0 is implemented in full against this specification, verified against §25's acceptance criteria, before any Phase 1 planning begins.*
+_This document requires team review and explicit sign-off before implementation begins. Once approved, Phase 0 is implemented in full against this specification, verified against §25's acceptance criteria, before any Phase 1 planning begins._

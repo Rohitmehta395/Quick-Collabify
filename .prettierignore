@@ -1,0 +1,15 @@
+# -------------------------------------------------------------------------
+# .prettierignore
+# Tells Prettier which files it should never attempt to format.
+# -------------------------------------------------------------------------
+
+# Ignore dependencies
+/node_modules
+
+# Ignore built output
+dist
+build
+.next
+
+# Ignore strict auto-generated lockfiles
+pnpm-lock.yaml

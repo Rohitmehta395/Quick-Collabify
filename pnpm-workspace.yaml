@@ -1,15 +1,15 @@
 # -------------------------------------------------------------------------
 # pnpm-workspace.yaml
 # This file tells pnpm that this is a "monorepo" (a single repository containing
-# multiple separate packages/apps). 
+# multiple separate packages/apps).
 # It defines where pnpm should look to find those individual projects.
 # -------------------------------------------------------------------------
 
 packages:
   # The 'apps' folder contains deployable applications (like our Next.js frontend,
   # Express API, Realtime server, and BullMQ worker).
-  - "apps/*"
-  
-  # The 'packages' folder contains shared code libraries (like UI components, 
+  - 'apps/*'
+
+  # The 'packages' folder contains shared code libraries (like UI components,
   # config schemas, and logger) that the apps will import and use.
-  - "packages/*"
+  - 'packages/*'

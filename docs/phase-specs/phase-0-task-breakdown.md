@@ -358,4 +358,4 @@ T04-T07,T11,T22,T23,T26,T27 → T28 → T29
 T01-T29 → T30
 ```
 
-**Note on parallelism:** several tasks in the T09–T16 range (schemas, logger, errors, ui) have no dependency on each other and can be executed in parallel by different engineers if the team is larger than one — the sequencing above reflects the *safest single-engineer order*, not a strict requirement that every task must be serialized if more people are available. Given the working agreement's "one phase at a time" rule applies at the phase level, not necessarily the task level, this is a reasonable place to parallelize if useful.
+**Note on parallelism:** several tasks in the T09–T16 range (schemas, logger, errors, ui) have no dependency on each other and can be executed in parallel by different engineers if the team is larger than one — the sequencing above reflects the _safest single-engineer order_, not a strict requirement that every task must be serialized if more people are available. Given the working agreement's "one phase at a time" rule applies at the phase level, not necessarily the task level, this is a reasonable place to parallelize if useful.

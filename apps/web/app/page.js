@@ -22,7 +22,9 @@ export default async function Page() {
 
   // Also test our OperationalError route to verify the envelope structure
   try {
-    const res2 = await fetch(`${config.VITE_API_URL}/simulate-operational-error`, { cache: 'no-store' });
+    const res2 = await fetch(`${config.VITE_API_URL}/simulate-operational-error`, {
+      cache: 'no-store',
+    });
     envelope = await res2.json();
   } catch (error) {
     console.error('Failed to test operational error route:', error);
@@ -31,11 +33,13 @@ export default async function Page() {
   return (
     <div className="container py-10 flex flex-col items-center justify-center min-h-[60vh] gap-8">
       <h1 className="text-4xl font-bold text-primary">Collaborative Workspace</h1>
-      
+
       <div className="flex gap-4">
         <div className="p-6 border rounded-lg shadow-sm bg-card">
           <h2 className="text-xl font-semibold mb-2">API Health Status</h2>
-          <div className={`px-4 py-2 rounded font-medium inline-block ${healthStatus === 'ok' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100'}`}>
+          <div
+            className={`px-4 py-2 rounded font-medium inline-block ${healthStatus === 'ok' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100'}`}
+          >
             {healthStatus.toUpperCase()}
           </div>
           {errorMsg && <p className="text-sm text-destructive mt-2">{errorMsg}</p>}

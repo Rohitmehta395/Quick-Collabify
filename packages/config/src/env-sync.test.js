@@ -2,12 +2,7 @@ import { describe, it, expect } from 'vitest';
 import fs from 'fs';
 import path from 'path';
 import dotenv from 'dotenv';
-import {
-  apiEnvSchema,
-  realtimeEnvSchema,
-  workerEnvSchema,
-  webEnvSchema,
-} from './index.js';
+import { apiEnvSchema, realtimeEnvSchema, workerEnvSchema, webEnvSchema } from './index.js';
 
 describe('.env.example contract', () => {
   it('should satisfy all configuration schemas', () => {

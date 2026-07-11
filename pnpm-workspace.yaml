@@ -20,3 +20,6 @@ allowBuilds:
   msgpackr-extract: true
   prisma: true
   sharp: true
+minimumReleaseAgeExclude:
+  - bullmq@5.80.2
+  - eslint@10.7.0

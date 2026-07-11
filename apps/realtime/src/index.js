@@ -8,7 +8,7 @@ import { logger } from '@workspace/logger';
 async function start() {
   try {
     const config = loadConfig(realtimeEnvSchema);
-    
+
     // Setup Express for health checks
     const app = express();
     app.get('/health', (req, res) => res.json({ status: 'ok' }));
@@ -20,7 +20,7 @@ async function start() {
     const io = new Server(httpServer, {
       cors: {
         origin: '*', // To be restricted later
-      }
+      },
     });
 
     io.on('connection', (socket) => {

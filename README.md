@@ -5,12 +5,14 @@ A real-time collaborative note-taking application using WebSockets, Next.js, and
 ## Architecture
 
 This project is a **pnpm workspace monorepo** consisting of four primary applications:
+
 1. **Web (`apps/web`)**: The frontend React client powered by Next.js.
 2. **API (`apps/api`)**: The core REST API powered by Express.js and Prisma (PostgreSQL).
 3. **Realtime (`apps/realtime`)**: A WebSocket server utilizing standard `ws` for live collaboration sync.
 4. **Worker (`apps/worker`)**: A background job processor using BullMQ (Redis) for heavy async tasks.
 
 Shared libraries are located in `packages/`:
+
 - `@workspace/config`: Centralized environment validation using Zod.
 - `@workspace/logger`: Standardized structured logging using Pino.
 - `@workspace/errors`: Common error classes for standard HTTP error responses.

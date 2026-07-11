@@ -4,12 +4,15 @@ Date: 2026-07-11
 Status: Accepted
 
 ## Context
+
 A monorepo requires a robust package manager to handle workspace linking, dependency hoisting, and fast installation times across multiple sub-projects. The standard choices are npm workspaces, Yarn workspaces, or pnpm workspaces.
 
 ## Decision
+
 We will use **pnpm** and its workspace feature as our package manager.
 
 ## Consequences
+
 - **Pros:**
   - Strict dependency resolution. `pnpm` avoids ghost dependencies by using a content-addressable store and symlinking packages.
   - Significantly faster installation times and lower disk space usage compared to npm/Yarn.

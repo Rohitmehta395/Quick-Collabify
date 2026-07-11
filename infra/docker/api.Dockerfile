@@ -29,8 +29,8 @@ WORKDIR /app
 # Copy the deployed application from the builder stage
 COPY --from=builder /app/deploy ./
 
-# The API defaults to port 4000 if not specified
-EXPOSE 4000
+# The API defaults to port 3001 if not specified
+EXPOSE 3001
 
 # Start the Node.js application
 CMD ["node", "src/index.js"]

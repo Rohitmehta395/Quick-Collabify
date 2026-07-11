@@ -29,8 +29,8 @@ WORKDIR /app
 # Copy the deployed application from the builder stage
 COPY --from=builder /app/deploy ./
 
-# The Realtime WebSocket server defaults to port 4001 if not specified
-EXPOSE 4001
+# The Realtime WebSocket server defaults to port 3002 if not specified
+EXPOSE 3002
 
 # Start the Node.js application
 CMD ["node", "src/index.js"]

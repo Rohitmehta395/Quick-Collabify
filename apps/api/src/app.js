@@ -1,6 +1,7 @@
 import express from 'express';
 import { OperationalError } from '@workspace/errors';
 import { healthRouter } from './routes/health.js';
+import { oauthRouter } from './auth/oauth/routes.js';
 import { errorHandler } from './middleware/error-handler.js';
 
 /**
@@ -17,7 +18,7 @@ export function buildApp() {
 
   // Mount routes
   app.use('/health', healthRouter);
-
+  app.use('/auth', oauthRouter);
   // Temporary testing route for OperationalError
   app.get('/simulate-operational-error', (req, res, next) => {
     next(new OperationalError('This is a simulated validation failure', 400, 'VALIDATION_FAILED'));

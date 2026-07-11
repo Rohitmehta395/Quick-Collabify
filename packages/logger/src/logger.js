@@ -1,4 +1,5 @@
 import pino from 'pino';
+import { getCorrelationId } from './correlation.js';
 
 // Define keys that should be scrubbed from logs for security.
 const REDACTED_KEYS = [
@@ -21,6 +22,10 @@ export const logger = pino({
     level: (label) => {
       return { level: label };
     },
+  },
+  mixin() {
+    const correlationId = getCorrelationId();
+    return correlationId ? { correlationId } : {};
   },
   redact: {
     paths: REDACTED_KEYS,

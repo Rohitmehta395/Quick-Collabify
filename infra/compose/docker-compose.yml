@@ -1,0 +1,133 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: notes-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: collab_db
+      POSTGRES_USER: username
+      POSTGRES_PASSWORD: password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U username -d collab_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: notes-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: ../../
+      dockerfile: infra/docker/api.Dockerfile
+      target: dev
+    container_name: notes-api
+    ports:
+      - "3001:3001"
+    env_file:
+      - ../../.env
+    environment:
+      - DATABASE_URL=postgres://username:password@postgres:5432/collab_db
+      - REDIS_URL=redis://redis:6379
+    volumes:
+      - ../../:/workspace
+      - /workspace/node_modules
+      - /workspace/apps/api/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  realtime:
+    build:
+      context: ../../
+      dockerfile: infra/docker/realtime.Dockerfile
+      target: dev
+    container_name: notes-realtime
+    ports:
+      - "3002:3002"
+    env_file:
+      - ../../.env
+    environment:
+      - REDIS_URL=redis://redis:6379
+    volumes:
+      - ../../:/workspace
+      - /workspace/node_modules
+      - /workspace/apps/realtime/node_modules
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3002/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  worker:
+    build:
+      context: ../../
+      dockerfile: infra/docker/worker.Dockerfile
+      target: dev
+    container_name: notes-worker
+    env_file:
+      - ../../.env
+    environment:
+      - DATABASE_URL=postgres://username:password@postgres:5432/collab_db
+      - REDIS_URL=redis://redis:6379
+    volumes:
+      - ../../:/workspace
+      - /workspace/node_modules
+      - /workspace/apps/worker/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  web:
+    build:
+      context: ../../
+      dockerfile: infra/docker/web.Dockerfile
+      target: dev
+    container_name: notes-web
+    ports:
+      - "3000:3000"
+    env_file:
+      - ../../.env
+    environment:
+      - VITE_API_URL=http://api:3001
+      - VITE_REALTIME_URL=http://localhost:3002
+    volumes:
+      - ../../:/workspace
+      - /workspace/node_modules
+      - /workspace/apps/web/node_modules
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:

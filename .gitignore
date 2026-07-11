@@ -1,7 +1,28 @@
+# -------------------------------------------------------------------------
+# .gitignore
+# This file tells Git which files and folders it should NOT track or upload
+# to version control (like GitHub). We ignore generated files, dependencies,
+# and sensitive secrets.
+# -------------------------------------------------------------------------
+
+# Third-party dependencies downloaded by pnpm. We don't commit these because
+# they are huge and can be re-downloaded anytime using 'pnpm install'.
 /node_modules
+
+# Environment variables file. This often contains secrets (like passwords or API keys).
+# NEVER commit this file! We use .env.example instead to show the shape of the config.
 .env
+
+# Next.js build output directory. Next.js creates this when compiling the frontend.
 .next
+
+# Standard output directories for built/compiled code.
 dist
 build
+
+# OS-specific files. .DS_Store is created by macOS to store custom folder attributes.
 .DS_Store
+
+# Editor-specific settings. We ignore VS Code's local workspace settings so
+# developers can have their own personal editor configurations.
 .vscode/

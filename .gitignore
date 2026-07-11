@@ -7,7 +7,7 @@
 
 # Third-party dependencies downloaded by pnpm. We don't commit these because
 # they are huge and can be re-downloaded anytime using 'pnpm install'.
-/node_modules
+node_modules
 
 # Environment variables file. This often contains secrets (like passwords or API keys).
 # NEVER commit this file! We use .env.example instead to show the shape of the config.

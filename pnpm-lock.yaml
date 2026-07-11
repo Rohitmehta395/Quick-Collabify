@@ -33,6 +33,8 @@ importers:
         specifier: ^3.9.5
         version: 3.9.5
 
+  packages/config: {}
+
 packages:
 
   '@babel/code-frame@7.29.7':

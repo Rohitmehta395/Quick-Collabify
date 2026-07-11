@@ -1,36 +1,38 @@
-# Base image with pnpm enabled via corepack
+# Base stage with pnpm enabled via corepack
 FROM node:20-alpine AS base
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 RUN corepack enable
-
-# Builder stage: installs all dependencies and extracts the isolated app
-FROM base AS builder
 WORKDIR /workspace
 
-# Copy workspace configuration and lockfile
+# Development stage: runs with hot-reload via watch and has all dependencies
+FROM base AS dev
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-
-# Copy all source code
-COPY apps ./apps
+COPY apps/api/package.json ./apps/api/
+COPY apps/realtime/package.json ./apps/realtime/
+COPY apps/worker/package.json ./apps/worker/
+COPY apps/web/package.json ./apps/web/
 COPY packages ./packages
-
-# Install the entire workspace dependencies (frozen lockfile to ensure reproducible builds)
 RUN pnpm install --frozen-lockfile
+COPY apps/realtime ./apps/realtime
+EXPOSE 3002
+CMD ["pnpm", "--filter", "realtime", "dev"]
 
-# Deploy only the target application and its production dependencies into /app/deploy
-# --legacy is used in pnpm 9 for non-injected workspace dependencies
+# Production builder stage: installs all deps and deploys the isolated app
+FROM base AS builder
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/api/package.json ./apps/api/
+COPY apps/realtime/package.json ./apps/realtime/
+COPY apps/worker/package.json ./apps/worker/
+COPY apps/web/package.json ./apps/web/
+COPY packages ./packages
+RUN pnpm install --frozen-lockfile
+COPY apps/realtime ./apps/realtime
 RUN pnpm --filter realtime deploy /app/deploy --prod --legacy
 
-# Final production stage: minimal image containing only what's necessary
+# Final production stage: minimal runner image
 FROM base AS prod
 WORKDIR /app
-
-# Copy the deployed application from the builder stage
 COPY --from=builder /app/deploy ./
-
-# The Realtime WebSocket server defaults to port 3002 if not specified
 EXPOSE 3002
-
-# Start the Node.js application
 CMD ["node", "src/index.js"]

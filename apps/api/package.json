@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "@workspace/config": "workspace:*",
+    "@workspace/errors": "workspace:*",
     "@workspace/logger": "workspace:*",
     "dotenv": "^17.4.2",
     "express": "^4.21.2"

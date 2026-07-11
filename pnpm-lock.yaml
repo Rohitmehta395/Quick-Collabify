@@ -38,6 +38,9 @@ importers:
       '@workspace/config':
         specifier: workspace:*
         version: link:../../packages/config
+      '@workspace/errors':
+        specifier: workspace:*
+        version: link:../../packages/errors
       '@workspace/logger':
         specifier: workspace:*
         version: link:../../packages/logger

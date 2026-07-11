@@ -1,4 +1,7 @@
 import express from 'express';
+import { OperationalError } from '@workspace/errors';
+import { healthRouter } from './routes/health.js';
+import { errorHandler } from './middleware/error-handler.js';
 
 /**
  * Factory function to build the Express application.
@@ -12,7 +15,21 @@ export function buildApp() {
   // Basic middleware to parse JSON bodies
   app.use(express.json());
 
-  // (Routes and error handlers will be attached here in future tasks)
+  // Mount routes
+  app.use('/health', healthRouter);
+
+  // Temporary testing route for OperationalError
+  app.get('/simulate-operational-error', (req, res, next) => {
+    next(new OperationalError('This is a simulated validation failure', 400, 'VALIDATION_FAILED'));
+  });
+
+  // Temporary testing route for Programmer Error
+  app.get('/simulate-programmer-error', (req, res, next) => {
+    next(new Error('This is a simulated unexpected bug (e.g. TypeError)'));
+  });
+
+  // Centralized Error Handler MUST be registered after all routes and other middleware
+  app.use(errorHandler);
 
   return app;
 }

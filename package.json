@@ -22,5 +22,10 @@
     "globals": "^17.7.0",
     "husky": "^9.1.7",
     "prettier": "^3.9.5"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "msgpackr-extract"
+    ]
   }
 }

@@ -13,3 +13,5 @@ packages:
   # The 'packages' folder contains shared code libraries (like UI components,
   # config schemas, and logger) that the apps will import and use.
   - 'packages/*'
+allowBuilds:
+  msgpackr-extract: set this to true or false

@@ -1,4 +1,7 @@
+import { loadConfig, webEnvSchema } from '@workspace/config';
+
 export default async function Page() {
+  const config = loadConfig(webEnvSchema);
   let healthStatus = 'Fetching...';
   let errorMsg = null;
   let envelope = null;
@@ -6,7 +9,7 @@ export default async function Page() {
   try {
     // Attempt to hit the API health check
     // We disable caching to ensure we get live status on each refresh
-    const res = await fetch('http://localhost:3001/health', { cache: 'no-store' });
+    const res = await fetch(`${config.VITE_API_URL}/health`, { cache: 'no-store' });
     if (!res.ok) {
       throw new Error(`Failed to fetch API: ${res.status}`);
     }
@@ -19,7 +22,7 @@ export default async function Page() {
 
   // Also test our OperationalError route to verify the envelope structure
   try {
-    const res2 = await fetch('http://localhost:3001/simulate-operational-error', { cache: 'no-store' });
+    const res2 = await fetch(`${config.VITE_API_URL}/simulate-operational-error`, { cache: 'no-store' });
     envelope = await res2.json();
   } catch (error) {
     console.error('Failed to test operational error route:', error);

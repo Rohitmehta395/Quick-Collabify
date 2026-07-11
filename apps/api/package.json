@@ -9,12 +9,15 @@
     "prisma:generate": "prisma generate"
   },
   "dependencies": {
+    "@prisma/client": "^7.8.0",
     "@workspace/config": "workspace:*",
     "@workspace/errors": "workspace:*",
     "@workspace/logger": "workspace:*",
-    "@prisma/client": "^7.8.0",
+    "arctic": "^3.7.0",
+    "cookie-parser": "^1.4.7",
     "dotenv": "^17.4.2",
-    "express": "^5.2.1"
+    "express": "^5.2.1",
+    "ioredis": "^5.11.1"
   },
   "devDependencies": {
     "prisma": "^7.8.0"

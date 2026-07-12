@@ -14,6 +14,7 @@ import { revokeSession } from '../sessions/revoke-session.js';
 import { validateRedirectUrl } from '../redirect-allowlist.js';
 import { authenticate } from '../middleware/authenticate.js';
 import { oauthRateLimiter } from '../middleware/rate-limit.js';
+import { prisma } from '../../db.js';
 
 export const oauthRouter = Router();
 const config = loadConfig(apiEnvSchema);
@@ -187,6 +188,29 @@ oauthRouter.post('/linking/confirm', oauthRateLimiter, async (req, res, next) =>
 // ==========================================
 // AUTHENTICATED ROUTES (PROTECTED BY SESSION)
 // ==========================================
+
+oauthRouter.get('/me', authenticate, async (req, res, next) => {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.userId },
+      select: {
+        id: true,
+        email: true,
+        displayName: true,
+        avatarUrl: true
+      }
+    });
+
+    if (!user) {
+      // Very unlikely since session validates against a known userId, but possible if DB was wiped manually
+      throw new OperationalError('User not found', 404, 'USER_NOT_FOUND');
+    }
+
+    res.json(user);
+  } catch (err) {
+    next(err);
+  }
+});
 
 oauthRouter.post('/logout', authenticate, async (req, res, next) => {
   try {

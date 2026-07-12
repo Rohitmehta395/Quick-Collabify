@@ -13,6 +13,7 @@ import { createSession } from '../sessions/create-session.js';
 import { revokeSession } from '../sessions/revoke-session.js';
 import { validateRedirectUrl } from '../redirect-allowlist.js';
 import { authenticate } from '../middleware/authenticate.js';
+import { oauthRateLimiter } from '../middleware/rate-limit.js';
 
 export const oauthRouter = Router();
 const config = loadConfig(apiEnvSchema);
@@ -67,7 +68,7 @@ async function handleOAuthSuccess(req, res, profile, storedState) {
 // INITIATION ROUTES (PUBLIC)
 // ==========================================
 
-oauthRouter.get('/google', async (req, res, next) => {
+oauthRouter.get('/google', oauthRateLimiter, async (req, res, next) => {
   try {
     const returnTo = req.query.returnTo;
     const { state, codeVerifier } = await generateAndStoreState('google', returnTo);
@@ -80,7 +81,7 @@ oauthRouter.get('/google', async (req, res, next) => {
   }
 });
 
-oauthRouter.get('/github', async (req, res, next) => {
+oauthRouter.get('/github', oauthRateLimiter, async (req, res, next) => {
   try {
     const returnTo = req.query.returnTo;
     const { state } = await generateAndStoreState('github', returnTo);
@@ -98,7 +99,7 @@ oauthRouter.get('/github', async (req, res, next) => {
 // CALLBACK ROUTES (PUBLIC)
 // ==========================================
 
-oauthRouter.get('/google/callback', async (req, res, next) => {
+oauthRouter.get('/google/callback', oauthRateLimiter, async (req, res, next) => {
   try {
     const { code, state, error } = oauthCallbackSchema.parse(req.query);
     if (error) {
@@ -123,7 +124,7 @@ oauthRouter.get('/google/callback', async (req, res, next) => {
   }
 });
 
-oauthRouter.get('/github/callback', async (req, res, next) => {
+oauthRouter.get('/github/callback', oauthRateLimiter, async (req, res, next) => {
   try {
     const { code, state, error } = oauthCallbackSchema.parse(req.query);
     if (error) {
@@ -155,7 +156,7 @@ oauthRouter.get('/github/callback', async (req, res, next) => {
 // It is protected, but NOT by the standard 'authenticate' session middleware,
 // because the user does not yet have an active session.
 
-oauthRouter.post('/linking/confirm', async (req, res, next) => {
+oauthRouter.post('/linking/confirm', oauthRateLimiter, async (req, res, next) => {
   try {
     const { action } = linkingConfirmationSchema.parse(req.body);
     const linkingToken = req.cookies[LINKING_COOKIE_NAME];

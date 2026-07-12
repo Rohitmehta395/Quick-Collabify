@@ -18,7 +18,7 @@ function getCookieOptions() {
 
 /**
  * Sets the session cookie on the Express response.
- * 
+ *
  * @param {import('express').Response} res - The Express response object
  * @param {string} sessionId - The session identifier
  */
@@ -31,18 +31,18 @@ export function setSessionCookie(res, sessionId) {
     ...getCookieOptions(),
     maxAge: SESSION_IDLE_TTL * 1000, // Express expects maxAge in milliseconds
   };
-  
+
   res.cookie(SESSION_COOKIE_NAME, sessionId, options);
 }
 
 /**
  * Clears the session cookie on the Express response.
- * 
+ *
  * @param {import('express').Response} res - The Express response object
  */
 export function clearSessionCookie(res) {
   const options = getCookieOptions();
-  
+
   // For clearing, Express requires the exact same domain/path/secure/sameSite flags
   res.clearCookie(SESSION_COOKIE_NAME, options);
 }

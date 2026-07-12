@@ -32,5 +32,8 @@
     "onlyBuiltDependencies": [
       "msgpackr-extract"
     ]
+  },
+  "dependencies": {
+    "vite": "^8.1.4"
   }
 }

@@ -19,9 +19,9 @@ describe('cookie.js', () => {
       const mockRes = {
         cookie: vi.fn(),
       };
-      
+
       setSessionCookie(mockRes, 'test-session-id');
-      
+
       expect(mockRes.cookie).toHaveBeenCalledWith(
         SESSION_COOKIE_NAME,
         'test-session-id',
@@ -31,7 +31,7 @@ describe('cookie.js', () => {
           sameSite: 'lax',
           path: '/',
           maxAge: SESSION_IDLE_TTL * 1000,
-        })
+        }),
       );
     });
 
@@ -46,9 +46,9 @@ describe('cookie.js', () => {
       const mockRes = {
         clearCookie: vi.fn(),
       };
-      
+
       clearSessionCookie(mockRes);
-      
+
       expect(mockRes.clearCookie).toHaveBeenCalledWith(
         SESSION_COOKIE_NAME,
         expect.objectContaining({
@@ -56,7 +56,7 @@ describe('cookie.js', () => {
           secure: true,
           sameSite: 'lax',
           path: '/',
-        })
+        }),
       );
     });
   });

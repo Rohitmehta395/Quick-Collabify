@@ -54,9 +54,9 @@ describe('validateSession', () => {
     const sessionData = { userId: 'user-123', createdAt: now };
     redisClient.get.mockResolvedValueOnce(JSON.stringify(sessionData));
     redisClient.expire.mockResolvedValueOnce('OK');
-    
+
     const result = await validateSession('valid-id');
-    
+
     expect(result).toEqual(sessionData);
     expect(redisClient.expire).toHaveBeenCalledWith('session:valid-id', SESSION_IDLE_TTL);
   });
@@ -65,16 +65,16 @@ describe('validateSession', () => {
     // Fake the time to simulate an old session
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-01-30T00:00:00Z'));
-    
+
     const now = Date.now();
     // Create a session that is older than absolute TTL
-    const oldCreatedAt = now - ((SESSION_ABSOLUTE_TTL + 10) * 1000); 
+    const oldCreatedAt = now - (SESSION_ABSOLUTE_TTL + 10) * 1000;
     const sessionData = { userId: 'user-456', createdAt: oldCreatedAt };
-    
+
     redisClient.get.mockResolvedValueOnce(JSON.stringify(sessionData));
-    
+
     const result = await validateSession('expired-id');
-    
+
     expect(result).toBeNull();
     // Should NOT have refreshed idle TTL
     expect(redisClient.expire).not.toHaveBeenCalled();

@@ -15,6 +15,7 @@ import { validateRedirectUrl } from '../redirect-allowlist.js';
 import { authenticate } from '../middleware/authenticate.js';
 import { oauthRateLimiter } from '../middleware/rate-limit.js';
 import { prisma } from '../../db.js';
+import { logger } from '@workspace/logger';
 
 export const oauthRouter = Router();
 const config = loadConfig(apiEnvSchema);
@@ -36,19 +37,29 @@ export const LINKING_COOKIE_NAME = 'pending_linking_token';
 async function handleOAuthSuccess(req, res, profile, storedState) {
   // If we had middleware populating req.user, we'd pass req.user.id here.
   // For now, since callback isn't protected, we pass null.
-  const currentUserId = null; 
-  
-  const resolution = await resolveIdentity(profile.provider, profile.providerId, profile.email, currentUserId);
+  const currentUserId = null;
+
+  const resolution = await resolveIdentity(
+    profile.provider,
+    profile.providerId,
+    profile.email,
+    currentUserId,
+  );
 
   if (resolution.type === IdentityResultType.CONFLICTING_IDENTITY) {
-    throw new OperationalError('Identity already linked to a different user', 409, 'CONFLICTING_IDENTITY');
+    throw new OperationalError(
+      'Identity already linked to a different user',
+      409,
+      'CONFLICTING_IDENTITY',
+    );
   }
 
   if (resolution.type === IdentityResultType.LINKING_CANDIDATE) {
+    logger.info({ provider: profile.provider }, 'Account-linking confirmation shown');
     const token = await createPendingLink(profile, resolution.user.id);
     const linkingOptions = { ...COOKIE_OPTIONS, maxAge: 15 * 60 * 1000 };
     res.cookie(LINKING_COOKIE_NAME, token, linkingOptions);
-    
+
     // Redirect to frontend linking page with the returnTo preserved
     const safeRedirect = validateRedirectUrl(storedState.returnTo);
     const linkingUrl = new URL('/auth/link', 'http://localhost:3000');
@@ -58,9 +69,19 @@ async function handleOAuthSuccess(req, res, profile, storedState) {
 
   // NEW_USER or RETURNING_USER
   const user = await executeIdentityCreation(resolution, profile);
+
+  logger.info(
+    {
+      userId: user.id,
+      provider: profile.provider,
+      type: resolution.type === IdentityResultType.NEW_USER ? 'new user' : 'returning user',
+    },
+    'Successful login',
+  );
+
   const sessionResult = await createSession(user.id);
   setSessionCookie(res, sessionResult.sessionId);
-  
+
   const safeRedirect = validateRedirectUrl(storedState.returnTo);
   res.redirect(safeRedirect);
 }
@@ -73,8 +94,12 @@ oauthRouter.get('/google', oauthRateLimiter, async (req, res, next) => {
   try {
     const returnTo = req.query.returnTo;
     const { state, codeVerifier } = await generateAndStoreState('google', returnTo);
-    const url = googleAuth.createAuthorizationURL(state, codeVerifier, ['openid', 'profile', 'email']);
-    
+    const url = googleAuth.createAuthorizationURL(state, codeVerifier, [
+      'openid',
+      'profile',
+      'email',
+    ]);
+
     res.cookie(COOKIE_NAME, state, COOKIE_OPTIONS);
     res.redirect(url.href);
   } catch (err) {
@@ -88,7 +113,7 @@ oauthRouter.get('/github', oauthRateLimiter, async (req, res, next) => {
     const { state } = await generateAndStoreState('github', returnTo);
     // GitHub does not use PKCE in the Arctic implementation
     const url = githubAuth.createAuthorizationURL(state, ['user:email']);
-    
+
     res.cookie(COOKIE_NAME, state, COOKIE_OPTIONS);
     res.redirect(url.href);
   } catch (err) {
@@ -106,7 +131,7 @@ oauthRouter.get('/google/callback', oauthRateLimiter, async (req, res, next) => 
     if (error) {
       throw new OperationalError(`OAuth Provider Error: ${error}`, 400, 'OAUTH_ERROR');
     }
-    
+
     const cookieState = req.cookies[COOKIE_NAME];
     if (!cookieState || state !== cookieState) {
       throw new OperationalError('Invalid or missing state parameter', 400, 'INVALID_STATE');
@@ -118,9 +143,20 @@ oauthRouter.get('/google/callback', oauthRateLimiter, async (req, res, next) => 
     }
 
     const profile = await exchangeGoogleCode(code, storedState.codeVerifier);
-    
+
     await handleOAuthSuccess(req, res, profile, storedState);
   } catch (err) {
+    logger.warn(
+      {
+        reasonCategory: err.isOperational
+          ? err.errorCode
+          : err.name === 'ArcticFetchError'
+            ? 'NETWORK_TIMEOUT'
+            : 'UNKNOWN_ERROR',
+        provider: 'google',
+      },
+      'Failed login',
+    );
     next(err);
   }
 });
@@ -131,7 +167,7 @@ oauthRouter.get('/github/callback', oauthRateLimiter, async (req, res, next) => 
     if (error) {
       throw new OperationalError(`OAuth Provider Error: ${error}`, 400, 'OAUTH_ERROR');
     }
-    
+
     const cookieState = req.cookies[COOKIE_NAME];
     if (!cookieState || state !== cookieState) {
       throw new OperationalError('Invalid or missing state parameter', 400, 'INVALID_STATE');
@@ -143,9 +179,20 @@ oauthRouter.get('/github/callback', oauthRateLimiter, async (req, res, next) => 
     }
 
     const profile = await exchangeGithubCode(code);
-    
+
     await handleOAuthSuccess(req, res, profile, storedState);
   } catch (err) {
+    logger.warn(
+      {
+        reasonCategory: err.isOperational
+          ? err.errorCode
+          : err.name === 'ArcticFetchError'
+            ? 'NETWORK_TIMEOUT'
+            : 'UNKNOWN_ERROR',
+        provider: 'github',
+      },
+      'Failed login',
+    );
     next(err);
   }
 });
@@ -161,24 +208,28 @@ oauthRouter.post('/linking/confirm', oauthRateLimiter, async (req, res, next) =>
   try {
     const { action } = linkingConfirmationSchema.parse(req.body);
     const linkingToken = req.cookies[LINKING_COOKIE_NAME];
-    
+
     if (!linkingToken) {
-      throw new OperationalError('No pending link found or session expired', 401, 'NO_PENDING_LINK');
+      throw new OperationalError(
+        'No pending link found or session expired',
+        401,
+        'NO_PENDING_LINK',
+      );
     }
-    
+
     // Attempt to rotate if they already have an active session cookie
     const currentSessionId = req.cookies[SESSION_COOKIE_NAME] || null;
-    
+
     const result = await processLinkingConfirmation(linkingToken, action, currentSessionId);
-    
+
     // Clear the pending link token
     res.clearCookie(LINKING_COOKIE_NAME, { ...COOKIE_OPTIONS, maxAge: 0 });
-    
+
     if (result.success && result.session) {
       const newId = result.session.newSessionId || result.session.sessionId;
       setSessionCookie(res, newId);
     }
-    
+
     res.json({ message: result.message, success: result.success });
   } catch (err) {
     next(err);
@@ -197,8 +248,8 @@ oauthRouter.get('/me', authenticate, async (req, res, next) => {
         id: true,
         email: true,
         displayName: true,
-        avatarUrl: true
-      }
+        avatarUrl: true,
+      },
     });
 
     if (!user) {
@@ -214,12 +265,22 @@ oauthRouter.get('/me', authenticate, async (req, res, next) => {
 
 oauthRouter.post('/logout', authenticate, async (req, res, next) => {
   try {
+    const sessionId = req.user.sessionId;
+
     // Revoke the session in Redis to prevent reuse
-    await revokeSession(req.user.userId, req.user.sessionId);
-    
+    await revokeSession(req.user.userId, sessionId);
+
     // Clear the cookie client-side
     clearSessionCookie(res);
-    
+
+    logger.info(
+      {
+        userId: req.user.userId,
+        sessionRef: sessionId.slice(0, 8),
+      },
+      'Logout',
+    );
+
     res.json({ success: true, message: 'Logged out successfully' });
   } catch (err) {
     next(err);

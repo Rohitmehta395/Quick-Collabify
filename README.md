@@ -34,6 +34,7 @@ Shared libraries are located in `packages/`:
    ```bash
    cp .env.example .env
    ```
+   _Note: You'll also need to register dev OAuth apps (Google/GitHub) and add their credentials to `.env`. See `apps/api/README.md` for details._
 3. **Start local databases (PostgreSQL & Redis):**
    ```bash
    docker compose -f infra/compose/docker-compose.yml up -d postgres redis

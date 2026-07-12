@@ -4,12 +4,13 @@ import { prisma } from '../../db.js';
 import { createSession } from '../sessions/create-session.js';
 import { rotateSession } from '../sessions/rotate-session.js';
 import { OperationalError } from '@workspace/errors';
+import { logger } from '@workspace/logger';
 
 const LINKING_TTL = 15 * 60; // 15 minutes
 
 /**
  * Creates a pending linking context in Redis and returns the token.
- * 
+ *
  * @param {object} profile - OAuth profile
  * @param {string} targetUserId - The existing user ID to link to
  * @returns {Promise<string>} The linking token
@@ -17,16 +18,16 @@ const LINKING_TTL = 15 * 60; // 15 minutes
 export async function createPendingLink(profile, targetUserId) {
   const token = crypto.randomUUID();
   const key = `pending-link:${token}`;
-  
+
   const payload = JSON.stringify({ profile, targetUserId });
   await redisClient.set(key, payload, 'EX', LINKING_TTL);
-  
+
   return token;
 }
 
 /**
  * Processes a linking confirmation/decline request.
- * 
+ *
  * @param {string} token - The pending linking token
  * @param {string} action - 'confirm' | 'decline'
  * @param {string|null} currentSessionId - The user's active session, if any, to rotate
@@ -50,10 +51,11 @@ export async function processLinkingConfirmation(token, action, currentSessionId
   await redisClient.del(key);
 
   if (action === 'decline') {
+    logger.info({ provider: profile.provider }, 'Account-linking declined');
     // Explicitly create nothing, return safe rejection per Spec 3.3
     return {
       success: false,
-      message: 'Account linking declined. Please sign in with your original provider.'
+      message: 'Account linking declined. Please sign in with your original provider.',
     };
   }
 
@@ -63,8 +65,8 @@ export async function processLinkingConfirmation(token, action, currentSessionId
       data: {
         userId: targetUserId,
         provider: profile.provider,
-        providerUserId: profile.providerId
-      }
+        providerUserId: profile.providerId,
+      },
     });
 
     // 2. Issue a session
@@ -75,12 +77,14 @@ export async function processLinkingConfirmation(token, action, currentSessionId
       sessionResult = await createSession(targetUserId);
     }
 
+    logger.info({ userId: targetUserId, provider: profile.provider }, 'Account-linking confirmed');
+
     return {
       success: true,
       message: 'Account successfully linked.',
-      session: sessionResult
+      session: sessionResult,
     };
   }
-  
+
   throw new OperationalError('Invalid action', 400, 'INVALID_ACTION');
 }

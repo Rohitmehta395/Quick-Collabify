@@ -4,18 +4,18 @@ export const IdentityResultType = {
   RETURNING_USER: 'RETURNING_USER',
   CONFLICTING_IDENTITY: 'CONFLICTING_IDENTITY',
   LINKING_CANDIDATE: 'LINKING_CANDIDATE',
-  NEW_USER: 'NEW_USER'
+  NEW_USER: 'NEW_USER',
 };
 
 /**
  * Resolves the identity of a user based on their OAuth profile.
  * This is a pure read-only decision function based on Spec §3.
- * 
+ *
  * @param {string} provider - The OAuth provider (e.g., 'google', 'github')
  * @param {string} providerUserId - The unique ID from the provider
  * @param {string} email - The verified email from the provider
  * @param {string|null} [currentUserId=null] - The ID of the currently authenticated user, if applicable
- * 
+ *
  * @returns {Promise<{ type: string, user: object|null, identity: object|null }>}
  */
 export async function resolveIdentity(provider, providerUserId, email, currentUserId = null) {
@@ -25,12 +25,12 @@ export async function resolveIdentity(provider, providerUserId, email, currentUs
     where: {
       provider_providerUserId: {
         provider,
-        providerUserId
-      }
+        providerUserId,
+      },
     },
     include: {
-      user: true
-    }
+      user: true,
+    },
   });
 
   if (existingIdentity) {
@@ -40,15 +40,15 @@ export async function resolveIdentity(provider, providerUserId, email, currentUs
       return {
         type: IdentityResultType.CONFLICTING_IDENTITY,
         user: existingIdentity.user,
-        identity: existingIdentity
+        identity: existingIdentity,
       };
     }
-    
+
     // Otherwise, this is a standard returning user sign-in.
     return {
       type: IdentityResultType.RETURNING_USER,
       user: existingIdentity.user,
-      identity: existingIdentity
+      identity: existingIdentity,
     };
   }
 
@@ -56,7 +56,7 @@ export async function resolveIdentity(provider, providerUserId, email, currentUs
   // Using findFirst because email is indexed but NOT uniquely constrained (Spec §9.2).
   const existingUserByEmail = await prisma.user.findFirst({
     where: { email },
-    orderBy: { createdAt: 'asc' } // Grab the oldest (primary) account if multiple exist
+    orderBy: { createdAt: 'asc' }, // Grab the oldest (primary) account if multiple exist
   });
 
   if (existingUserByEmail) {
@@ -64,7 +64,7 @@ export async function resolveIdentity(provider, providerUserId, email, currentUs
     return {
       type: IdentityResultType.LINKING_CANDIDATE,
       user: existingUserByEmail,
-      identity: null
+      identity: null,
     };
   }
 
@@ -72,6 +72,6 @@ export async function resolveIdentity(provider, providerUserId, email, currentUs
   return {
     type: IdentityResultType.NEW_USER,
     user: null,
-    identity: null
+    identity: null,
   };
 }

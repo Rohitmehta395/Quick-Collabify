@@ -1,5 +1,30 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import { buildApp } from '../app.js';
+
+vi.mock('../db.js', () => ({
+  prisma: {},
+}));
+
+vi.mock('../auth/sessions/redis-keys.js', () => ({
+  redisClient: {
+    get: vi.fn(),
+    set: vi.fn(),
+    del: vi.fn(),
+    expire: vi.fn(),
+    multi: vi.fn(() => ({
+      zremrangebyscore: vi.fn().mockReturnThis(),
+      zadd: vi.fn().mockReturnThis(),
+      zcard: vi.fn().mockReturnThis(),
+      pexpire: vi.fn().mockReturnThis(),
+      get: vi.fn().mockReturnThis(),
+      del: vi.fn().mockReturnThis(),
+      exec: vi.fn().mockResolvedValue([]),
+    })),
+  },
+  buildSessionKey: vi.fn(),
+  buildUserSessionsKey: vi.fn(),
+  buildOauthStateKey: vi.fn(),
+}));
 
 describe('GET /health', () => {
   let server;

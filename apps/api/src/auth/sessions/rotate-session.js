@@ -5,7 +5,7 @@ import { revokeSession } from './revoke-session.js';
  * Rotates a user's session by issuing a new session ID and revoking the old one.
  * Used during privilege-relevant events (e.g. linking a new OAuth provider).
  * The operations are sequenced to ensure the user is never left without a valid session.
- * 
+ *
  * @param {string} userId - The owner of the session
  * @param {string} oldSessionId - The session identifier to rotate out
  * @returns {Promise<{ newSessionId: string, createdAt: number }>}

@@ -6,18 +6,18 @@ import { logger } from '@workspace/logger';
 
 /**
  * Express middleware that protects routes by enforcing a valid session.
- * 
+ *
  * Spec §11.6: All invalid session cases (missing, expired, revoked, tampered)
  * MUST produce an identical 401 Unauthorized response to prevent information leakage.
- * 
- * @param {import('express').Request} req 
- * @param {import('express').Response} res 
- * @param {import('express').NextFunction} next 
+ *
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
  */
 export async function authenticate(req, res, next) {
   try {
     const sessionId = req.cookies[SESSION_COOKIE_NAME];
-    
+
     if (!sessionId) {
       throw new OperationalError('Unauthorized', 401, 'UNAUTHORIZED');
     }
@@ -29,7 +29,10 @@ export async function authenticate(req, res, next) {
       // Redis outage or unexpected error.
       // Spec §13.2: Fail closed on Redis failures. Treat as unauthenticated.
       // Log as high-severity operational event, but return generic 401 to client.
-      logger.error({ err, sessionId }, 'Session validation failed due to infrastructure error (Redis failure)');
+      logger.error(
+        { err, sessionId },
+        'Session validation failed due to infrastructure error (Redis failure)',
+      );
       throw new OperationalError('Unauthorized', 401, 'UNAUTHORIZED');
     }
 
@@ -40,13 +43,13 @@ export async function authenticate(req, res, next) {
 
     // Spec §7.1: Attach request context (userId, sessionId, correlation ID)
     const correlationId = req.headers['x-correlation-id'] || crypto.randomUUID();
-    
+
     req.user = {
       userId: sessionData.userId,
       sessionId,
-      correlationId
+      correlationId,
     };
-    
+
     next();
   } catch (err) {
     next(err);

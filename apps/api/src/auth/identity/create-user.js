@@ -6,7 +6,7 @@ import { IdentityResultType } from './resolve-identity.js';
  * For NEW_USER, transactionally creates a User and their initial Identity.
  * For RETURNING_USER, it returns the passed-through user object.
  * (Linking candidates and conflicts are handled elsewhere).
- * 
+ *
  * @param {object} resolution - The result from resolveIdentity()
  * @param {object} profile - The standardized profile from the OAuth provider
  * @param {string} profile.provider - Provider name (e.g., 'google')
@@ -14,7 +14,7 @@ import { IdentityResultType } from './resolve-identity.js';
  * @param {string} profile.email - Verified email
  * @param {string} [profile.displayName] - Optional name
  * @param {string} [profile.avatarUrl] - Optional avatar URL
- * 
+ *
  * @returns {Promise<object>} The resulting User object
  */
 export async function executeIdentityCreation(resolution, profile) {
@@ -35,10 +35,10 @@ export async function executeIdentityCreation(resolution, profile) {
         identities: {
           create: {
             provider: profile.provider,
-            providerUserId: profile.providerId
-          }
-        }
-      }
+            providerUserId: profile.providerId,
+          },
+        },
+      },
     });
 
     return newUser;

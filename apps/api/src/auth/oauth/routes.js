@@ -5,8 +5,12 @@ import { exchangeGoogleCode, exchangeGithubCode } from './exchange.js';
 import { loadConfig, apiEnvSchema } from '@workspace/config';
 import { oauthCallbackSchema, linkingConfirmationSchema } from '@workspace/schemas';
 import { OperationalError } from '@workspace/errors';
-import { processLinkingConfirmation } from '../identity/linking.js';
+import { processLinkingConfirmation, createPendingLink } from '../identity/linking.js';
 import { setSessionCookie, SESSION_COOKIE_NAME } from '../sessions/cookie.js';
+import { resolveIdentity, IdentityResultType } from '../identity/resolve-identity.js';
+import { executeIdentityCreation } from '../identity/create-user.js';
+import { createSession } from '../sessions/create-session.js';
+import { validateRedirectUrl } from '../redirect-allowlist.js';
 
 export const oauthRouter = Router();
 const config = loadConfig(apiEnvSchema);
@@ -21,9 +25,50 @@ export const COOKIE_OPTIONS = {
 
 export const LINKING_COOKIE_NAME = 'pending_linking_token';
 
+// ==========================================
+// SHARED SUCCESS HANDLER
+// ==========================================
+
+async function handleOAuthSuccess(req, res, profile, storedState) {
+  // If we had middleware populating req.user, we'd pass req.user.id here.
+  // For now, since callback isn't protected, we pass null.
+  const currentUserId = null; 
+  
+  const resolution = await resolveIdentity(profile.provider, profile.providerId, profile.email, currentUserId);
+
+  if (resolution.type === IdentityResultType.CONFLICTING_IDENTITY) {
+    throw new OperationalError('Identity already linked to a different user', 409, 'CONFLICTING_IDENTITY');
+  }
+
+  if (resolution.type === IdentityResultType.LINKING_CANDIDATE) {
+    const token = await createPendingLink(profile, resolution.user.id);
+    const linkingOptions = { ...COOKIE_OPTIONS, maxAge: 15 * 60 * 1000 };
+    res.cookie(LINKING_COOKIE_NAME, token, linkingOptions);
+    
+    // Redirect to frontend linking page with the returnTo preserved
+    const safeRedirect = validateRedirectUrl(storedState.returnTo);
+    const linkingUrl = new URL('/auth/link', 'http://localhost:3000');
+    linkingUrl.searchParams.set('returnTo', safeRedirect);
+    return res.redirect(linkingUrl.href);
+  }
+
+  // NEW_USER or RETURNING_USER
+  const user = await executeIdentityCreation(resolution, profile);
+  const sessionResult = await createSession(user.id);
+  setSessionCookie(res, sessionResult.sessionId);
+  
+  const safeRedirect = validateRedirectUrl(storedState.returnTo);
+  res.redirect(safeRedirect);
+}
+
+// ==========================================
+// INITIATION ROUTES
+// ==========================================
+
 oauthRouter.get('/google', async (req, res, next) => {
   try {
-    const { state, codeVerifier } = await generateAndStoreState('google');
+    const returnTo = req.query.returnTo;
+    const { state, codeVerifier } = await generateAndStoreState('google', returnTo);
     const url = googleAuth.createAuthorizationURL(state, codeVerifier, ['openid', 'profile', 'email']);
     
     res.cookie(COOKIE_NAME, state, COOKIE_OPTIONS);
@@ -35,7 +80,8 @@ oauthRouter.get('/google', async (req, res, next) => {
 
 oauthRouter.get('/github', async (req, res, next) => {
   try {
-    const { state } = await generateAndStoreState('github');
+    const returnTo = req.query.returnTo;
+    const { state } = await generateAndStoreState('github', returnTo);
     // GitHub does not use PKCE in the Arctic implementation
     const url = githubAuth.createAuthorizationURL(state, ['user:email']);
     
@@ -69,9 +115,7 @@ oauthRouter.get('/google/callback', async (req, res, next) => {
 
     const profile = await exchangeGoogleCode(code, storedState.codeVerifier);
     
-    // Spec §5.4: We discard tokens immediately after fetch.
-    // For now, just return the fetched profile to prove success.
-    res.json({ message: 'Google OAuth success! Identity extracted.', profile });
+    await handleOAuthSuccess(req, res, profile, storedState);
   } catch (err) {
     next(err);
   }
@@ -96,7 +140,7 @@ oauthRouter.get('/github/callback', async (req, res, next) => {
 
     const profile = await exchangeGithubCode(code);
     
-    res.json({ message: 'GitHub OAuth success! Identity extracted.', profile });
+    await handleOAuthSuccess(req, res, profile, storedState);
   } catch (err) {
     next(err);
   }

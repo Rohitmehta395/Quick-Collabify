@@ -8,9 +8,10 @@ const STATE_TTL_SECONDS = 10 * 60; // 10 minutes
  * and stores the verifier and provider in Redis with a TTL.
  * 
  * @param {string} provider The name of the OAuth provider (e.g., 'google', 'github')
+ * @param {string} [returnTo] Optional URL to redirect back to after sign-in
  * @returns {Promise<{ state: string, codeVerifier: string }>}
  */
-export async function generateAndStoreState(provider) {
+export async function generateAndStoreState(provider, returnTo = null) {
   if (!provider) throw new Error('Provider must be specified');
 
   const state = generateState();
@@ -18,8 +19,8 @@ export async function generateAndStoreState(provider) {
   
   const key = buildOauthStateKey(state);
   
-  // Store the code verifier and provider as a JSON string
-  const payload = JSON.stringify({ codeVerifier, provider });
+  // Store the code verifier, provider, and returnTo as a JSON string
+  const payload = JSON.stringify({ codeVerifier, provider, returnTo });
   
   await redisClient.set(key, payload, 'EX', STATE_TTL_SECONDS);
 

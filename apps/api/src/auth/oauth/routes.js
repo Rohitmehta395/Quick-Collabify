@@ -6,11 +6,13 @@ import { loadConfig, apiEnvSchema } from '@workspace/config';
 import { oauthCallbackSchema, linkingConfirmationSchema } from '@workspace/schemas';
 import { OperationalError } from '@workspace/errors';
 import { processLinkingConfirmation, createPendingLink } from '../identity/linking.js';
-import { setSessionCookie, SESSION_COOKIE_NAME } from '../sessions/cookie.js';
+import { setSessionCookie, clearSessionCookie, SESSION_COOKIE_NAME } from '../sessions/cookie.js';
 import { resolveIdentity, IdentityResultType } from '../identity/resolve-identity.js';
 import { executeIdentityCreation } from '../identity/create-user.js';
 import { createSession } from '../sessions/create-session.js';
+import { revokeSession } from '../sessions/revoke-session.js';
 import { validateRedirectUrl } from '../redirect-allowlist.js';
+import { authenticate } from '../middleware/authenticate.js';
 
 export const oauthRouter = Router();
 const config = loadConfig(apiEnvSchema);
@@ -62,7 +64,7 @@ async function handleOAuthSuccess(req, res, profile, storedState) {
 }
 
 // ==========================================
-// INITIATION ROUTES
+// INITIATION ROUTES (PUBLIC)
 // ==========================================
 
 oauthRouter.get('/google', async (req, res, next) => {
@@ -93,7 +95,7 @@ oauthRouter.get('/github', async (req, res, next) => {
 });
 
 // ==========================================
-// CALLBACK ROUTES
+// CALLBACK ROUTES (PUBLIC)
 // ==========================================
 
 oauthRouter.get('/google/callback', async (req, res, next) => {
@@ -147,8 +149,11 @@ oauthRouter.get('/github/callback', async (req, res, next) => {
 });
 
 // ==========================================
-// ACCOUNT LINKING ROUTES
+// ACCOUNT LINKING ROUTES (PROTECTED BY PENDING CONTEXT)
 // ==========================================
+// Note: This route is only reachable mid-flow with a valid pending_linking_token.
+// It is protected, but NOT by the standard 'authenticate' session middleware,
+// because the user does not yet have an active session.
 
 oauthRouter.post('/linking/confirm', async (req, res, next) => {
   try {
@@ -173,6 +178,24 @@ oauthRouter.post('/linking/confirm', async (req, res, next) => {
     }
     
     res.json({ message: result.message, success: result.success });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ==========================================
+// AUTHENTICATED ROUTES (PROTECTED BY SESSION)
+// ==========================================
+
+oauthRouter.post('/logout', authenticate, async (req, res, next) => {
+  try {
+    // Revoke the session in Redis to prevent reuse
+    await revokeSession(req.user.userId, req.user.sessionId);
+    
+    // Clear the cookie client-side
+    clearSessionCookie(res);
+    
+    res.json({ success: true, message: 'Logged out successfully' });
   } catch (err) {
     next(err);
   }

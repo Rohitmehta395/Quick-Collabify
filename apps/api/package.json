@@ -10,16 +10,21 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@bull-board/api": "^8.1.2",
+    "@bull-board/express": "^8.1.2",
+    "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
     "@workspace/config": "workspace:*",
     "@workspace/errors": "workspace:*",
     "@workspace/logger": "workspace:*",
     "@workspace/schemas": "workspace:*",
     "arctic": "^3.7.0",
+    "bullmq": "^5.80.2",
     "cookie-parser": "^1.4.7",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
-    "ioredis": "^5.11.1"
+    "ioredis": "^5.11.1",
+    "pg": "^8.22.0"
   },
   "devDependencies": {
     "nock": "^14.0.16",

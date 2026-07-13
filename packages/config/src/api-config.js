@@ -19,4 +19,10 @@ export const apiEnvSchema = z.object({
   OAUTH_GITHUB_CLIENT_ID: z.string().min(1, 'GitHub Client ID is required'),
   OAUTH_GITHUB_CLIENT_SECRET: z.string().min(1, 'GitHub Client Secret is required'),
   OAUTH_GITHUB_REDIRECT_URI: z.string().url('GitHub Redirect URI must be a valid URL'),
+
+  // Queue Monitoring
+  QUEUE_MONITOR_ENABLED: z
+    .enum(['true', 'false'])
+    .transform((val) => val === 'true')
+    .default('false'),
 });

@@ -26,3 +26,5 @@ build
 # Editor-specific settings. We ignore VS Code's local workspace settings so
 # developers can have their own personal editor configurations.
 .vscode/
+
+AGENTS.md

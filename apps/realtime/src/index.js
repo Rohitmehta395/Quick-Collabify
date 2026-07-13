@@ -31,8 +31,11 @@ async function start() {
     });
 
     // Start listening
-    httpServer.listen(config.PORT, () => {
-      logger.info({ port: config.PORT }, 'Realtime server successfully started and listening');
+    httpServer.listen(config.REALTIME_PORT, () => {
+      logger.info(
+        { port: config.REALTIME_PORT },
+        'Realtime server successfully started and listening',
+      );
     });
 
     const shutdown = () => {

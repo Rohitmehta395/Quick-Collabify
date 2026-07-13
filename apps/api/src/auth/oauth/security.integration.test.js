@@ -208,21 +208,17 @@ describe('OAuth Security Integration Tests', () => {
       });
 
       // Mock successful Google login
-      nock('https://oauth2.googleapis.com')
-        .post('/token')
-        .reply(200, {
-          access_token: 'mock-access-token',
-          id_token: 'mock-id-token',
-          expires_in: 3600,
-        });
-      nock('https://openidconnect.googleapis.com')
-        .get('/v1/userinfo')
-        .reply(200, {
-          sub: 'google-123',
-          email: 'old@example.com',
-          email_verified: true,
-          name: 'Old User',
-        });
+      nock('https://oauth2.googleapis.com').post('/token').reply(200, {
+        access_token: 'mock-access-token',
+        id_token: 'mock-id-token',
+        expires_in: 3600,
+      });
+      nock('https://openidconnect.googleapis.com').get('/v1/userinfo').reply(200, {
+        sub: 'google-123',
+        email: 'old@example.com',
+        email_verified: true,
+        name: 'Old User',
+      });
 
       // We pass an existing attacker-provided session ID
       const res = await request(app)

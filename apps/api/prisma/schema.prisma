@@ -4,6 +4,7 @@ datasource db {
 
 generator client {
   provider = "prisma-client-js"
+  engineType = "library"
 }
 
 // Trivial smoke-test model to verify migration pipelines work cleanly.
@@ -22,7 +23,8 @@ model User {
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
 
-  identities  Identity[]
+  identities         Identity[]
+  notificationEvents NotificationEvent[]
 
   @@index([email])
 }
@@ -39,4 +41,20 @@ model Identity {
 
   @@unique([provider, providerUserId])
   @@index([userId])
+}
+
+model NotificationEvent {
+  id              String   @id @default(uuid())
+  type            String
+  recipientUserId String
+  status          String
+  idempotencyKey  String   @unique
+  metadata        Json     @default("{}")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  recipient       User     @relation(fields: [recipientUserId], references: [id], onDelete: Cascade)
+
+  @@index([recipientUserId])
+  @@index([status, type])
 }

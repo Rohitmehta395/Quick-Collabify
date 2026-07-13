@@ -9,6 +9,9 @@ import js from '@eslint/js';
 import eslintConfigPrettier from 'eslint-config-prettier';
 
 export default [
+  {
+    ignores: ['**/.next/**', '**/dist/**', '**/node_modules/**', 'apps/web/**'],
+  },
   // 1. Base Recommended Rules
   // We start by extending ESLint's default recommended rules which catch common bugs.
   js.configs.recommended,

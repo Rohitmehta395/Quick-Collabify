@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "type": "module",
   "main": "src/index.js",
+  "scripts": {
+    "test": "vitest run"
+  },
   "dependencies": {
     "zod": "^4.4.3"
   }

@@ -6,5 +6,6 @@ export default defineConfig({
     environment: 'node',
     include: ['**/*.test.js'],
     exclude: ['**/node_modules/**', '**/dist/**', '**/.next/**'],
+    setupFiles: ['dotenv/config'],
   },
 });

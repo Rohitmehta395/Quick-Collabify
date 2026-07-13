@@ -5,7 +5,7 @@ import { z } from 'zod';
  */
 export const realtimeEnvSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
-  PORT: z
+  REALTIME_PORT: z
     .string()
     .transform((val) => parseInt(val, 10))
     .default('3002'),

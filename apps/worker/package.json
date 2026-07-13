@@ -4,13 +4,23 @@
   "type": "module",
   "scripts": {
     "start": "node src/index.js",
-    "dev": "node --watch src/index.js"
+    "dev": "node --watch src/index.js",
+    "test": "vitest run"
   },
   "dependencies": {
+    "@prisma/adapter-pg": "^7.8.0",
+    "@prisma/client": "^7.8.0",
     "@workspace/config": "workspace:*",
     "@workspace/logger": "workspace:*",
+    "@workspace/schemas": "workspace:^",
     "bullmq": "^5.80.2",
+    "dotenv": "^17.4.2",
     "ioredis": "^5.11.1",
-    "dotenv": "^17.4.2"
+    "pg": "^8.22.0",
+    "postmark": "^5.1.0"
+  },
+  "devDependencies": {
+    "nock": "^14.0.16",
+    "pino": "^10.3.1"
   }
 }

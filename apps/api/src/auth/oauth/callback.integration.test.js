@@ -4,12 +4,22 @@ import nock from 'nock';
 import { buildApp } from '../../app.js';
 import { prisma } from '../../db.js';
 import { redisClient } from '../sessions/redis-keys.js';
+import { emailQueue } from '../../jobs/email-queue.js';
 
 // Mock dependencies since we don't have a real Redis/Postgres in this environment
+vi.mock('../../monitoring/queue-dashboard.js', () => ({
+  queueDashboardRouter: (req, res, next) => next(),
+}));
+vi.mock('../../jobs/email-queue.js', () => ({
+  emailQueue: {
+    add: vi.fn().mockResolvedValue({ id: 'mock-job-123' }),
+  },
+}));
 vi.mock('../../db.js', () => ({
   prisma: {
     user: { findFirst: vi.fn(), create: vi.fn() },
     identity: { findUnique: vi.fn(), create: vi.fn() },
+    notificationEvent: { create: vi.fn() },
   },
 }));
 
@@ -102,7 +112,7 @@ describe('OAuth Callback Integration Tests', () => {
     // 4. Mock Database (User and Identity do not exist -> NEW_USER)
     prisma.identity.findUnique.mockResolvedValueOnce(null);
     prisma.user.findFirst.mockResolvedValueOnce(null);
-    prisma.user.create.mockResolvedValueOnce({ id: 'new-user-123' });
+    prisma.user.create.mockResolvedValueOnce({ id: '59263bc7-16e2-4b87-9bb9-42c579715fd7' });
 
     // 5. Execute the request
     const response = await request(app)
@@ -124,6 +134,23 @@ describe('OAuth Callback Integration Tests', () => {
 
     // Verify Redis was updated to store the session
     expect(redisClient.multi().set).toHaveBeenCalled();
+
+    // Verify exactly 1 job was enqueued and exactly 1 pending NotificationEvent was created
+    expect(prisma.notificationEvent.create).toHaveBeenCalledTimes(1);
+    expect(prisma.notificationEvent.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          type: 'welcome_email',
+          recipientUserId: '59263bc7-16e2-4b87-9bb9-42c579715fd7',
+        }),
+      }),
+    );
+    expect(emailQueue.add).toHaveBeenCalledTimes(1);
+    expect(emailQueue.add).toHaveBeenCalledWith(
+      'welcome_email',
+      expect.objectContaining({ userId: '59263bc7-16e2-4b87-9bb9-42c579715fd7' }),
+      expect.any(Object),
+    );
   });
 
   it('successfully completes the OAuth flow for a returning user', async () => {
@@ -150,19 +177,17 @@ describe('OAuth Callback Integration Tests', () => {
     nock('https://oauth2.googleapis.com')
       .post('/token')
       .reply(200, { access_token: 't', id_token: 'i' });
-    nock('https://openidconnect.googleapis.com')
-      .get('/v1/userinfo')
-      .reply(200, {
-        sub: 'google-old',
-        email: 'old@example.com',
-        name: 'Old',
-        email_verified: true,
-      });
+    nock('https://openidconnect.googleapis.com').get('/v1/userinfo').reply(200, {
+      sub: 'google-old',
+      email: 'old@example.com',
+      name: 'Old',
+      email_verified: true,
+    });
 
     // RETURNING USER mock setup
     prisma.identity.findUnique.mockResolvedValueOnce({
-      userId: 'old-user-123',
-      user: { id: 'old-user-123', email: 'old@example.com' },
+      userId: '60163bc7-16e2-4b87-9bb9-42c579715fd7',
+      user: { id: '60163bc7-16e2-4b87-9bb9-42c579715fd7', email: 'old@example.com' },
     });
 
     const response = await request(app)
@@ -175,6 +200,10 @@ describe('OAuth Callback Integration Tests', () => {
     // User creation should NOT be called
     expect(prisma.user.create).not.toHaveBeenCalled();
     expect(redisClient.multi().set).toHaveBeenCalled();
+
+    // Verify 0 jobs were enqueued for a returning user
+    expect(prisma.notificationEvent.create).not.toHaveBeenCalled();
+    expect(emailQueue.add).not.toHaveBeenCalled();
   });
 
   it('handles account linking when requested and user declines', async () => {
@@ -202,14 +231,12 @@ describe('OAuth Callback Integration Tests', () => {
     nock('https://oauth2.googleapis.com')
       .post('/token')
       .reply(200, { access_token: 't', id_token: 'i' });
-    nock('https://openidconnect.googleapis.com')
-      .get('/v1/userinfo')
-      .reply(200, {
-        sub: 'google-conflict',
-        email: 'conflict@example.com',
-        name: 'Conflict',
-        email_verified: true,
-      });
+    nock('https://openidconnect.googleapis.com').get('/v1/userinfo').reply(200, {
+      sub: 'google-conflict',
+      email: 'conflict@example.com',
+      name: 'Conflict',
+      email_verified: true,
+    });
 
     prisma.identity.findUnique.mockResolvedValueOnce(null);
     prisma.user.findFirst.mockResolvedValueOnce({

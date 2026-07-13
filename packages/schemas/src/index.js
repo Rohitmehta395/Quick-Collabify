@@ -10,3 +10,4 @@
 export { oauthCallbackSchema } from './auth/oauth-callback.js';
 export { linkingConfirmationSchema } from './auth/linking-confirmation.js';
 export { userSchema } from './auth/user.js';
+export { emailJobPayloadSchema } from './jobs/email-job-payload.js';

@@ -12,6 +12,7 @@ import { executeIdentityCreation } from '../identity/create-user.js';
 import { createSession } from '../sessions/create-session.js';
 import { revokeSession } from '../sessions/revoke-session.js';
 import { validateRedirectUrl } from '../redirect-allowlist.js';
+import { enqueueWelcomeEmail } from '../../jobs/enqueue-welcome-email.js';
 import { authenticate } from '../middleware/authenticate.js';
 import { oauthRateLimiter } from '../middleware/rate-limit.js';
 import { prisma } from '../../db.js';
@@ -69,6 +70,15 @@ async function handleOAuthSuccess(req, res, profile, storedState) {
 
   // NEW_USER or RETURNING_USER
   const user = await executeIdentityCreation(resolution, profile);
+
+  if (resolution.type === IdentityResultType.NEW_USER) {
+    try {
+      await enqueueWelcomeEmail(user);
+    } catch (err) {
+      // Non-blocking: we catch and log, but do not throw, so the user login completes successfully
+      logger.error({ userId: user.id, err }, 'Failed to enqueue welcome email (non-blocking)');
+    }
+  }
 
   logger.info(
     {

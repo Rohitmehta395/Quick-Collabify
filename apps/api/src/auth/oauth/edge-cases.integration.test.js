@@ -83,13 +83,11 @@ describe('OAuth Edge Case Integration Tests (Spec §14.6)', () => {
       [null, 1],
     ]);
 
-    nock('https://oauth2.googleapis.com')
-      .post('/token')
-      .reply(200, {
-        access_token: 'mock-access-token',
-        id_token: 'mock-id-token',
-        expires_in: 3600,
-      });
+    nock('https://oauth2.googleapis.com').post('/token').reply(200, {
+      access_token: 'mock-access-token',
+      id_token: 'mock-id-token',
+      expires_in: 3600,
+    });
 
     nock('https://openidconnect.googleapis.com').get('/v1/userinfo').reply(200, {
       sub: 'google-123',

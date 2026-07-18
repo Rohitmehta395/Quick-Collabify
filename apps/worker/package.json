@@ -13,7 +13,7 @@
     "@workspace/config": "workspace:*",
     "@workspace/logger": "workspace:*",
     "@workspace/schemas": "workspace:^",
-    "bullmq": "^5.80.2",
+    "bullmq": "^5.80.8",
     "dotenv": "^17.4.2",
     "ioredis": "^5.11.1",
     "pg": "^8.22.0",

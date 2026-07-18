@@ -19,7 +19,7 @@
     "@workspace/logger": "workspace:*",
     "@workspace/schemas": "workspace:*",
     "arctic": "^3.7.0",
-    "bullmq": "^5.80.2",
+    "bullmq": "^5.80.8",
     "cookie-parser": "^1.4.7",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
